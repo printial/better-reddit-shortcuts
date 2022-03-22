@@ -13,6 +13,7 @@ Menu Example | Edit Menu Example
 - Seperate names for subreddits (useful for sports subreddits where the subreddit might be a nickname or initials)
 - Low system usage compared to RES
 - Works with both old reddit and new reddit (eventually)
+- Ability to easy share menus with others or between accounts
 
 ## Install
 
@@ -30,5 +31,5 @@ Menu Example | Edit Menu Example
 - Convert to Chrome/Firefox extensions
 - Get working on new reddit, reddit without RES.
 - Add subreddit colours/icons
-- Improve submenu management
+- Improve submenu management (sorting, better UI)
 - Add/improve submenu import/exports and sharing
