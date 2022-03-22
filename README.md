@@ -10,7 +10,11 @@ Menu Example | Edit Menu Example
 ## Features
 
 - Nested submenus 
-- Seperate names for subreddits (useful for sports subreddits where the subreddit might be a nickname or initials)
+- Seperate names for subreddits - useful for when subreddits names aren't clear about the content (like sports subreddits that use initials or nicknames), examples:
+  - /r/urz is the subreddit for Reading F.C.
+  - /r/PARS is the subreddit for Dunfermline Athletic F.C.
+  - /r/pne is the subreddit for Preston North End F.C.
+  - /r/superhoops is the subreddit for Queens Park Rangers F.C.
 - Low system usage compared to RES
 - Works with both old reddit and new reddit (eventually)
 - Ability to easy share menus with others or between accounts
