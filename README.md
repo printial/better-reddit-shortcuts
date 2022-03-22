@@ -38,6 +38,10 @@ Menu Example | Edit Menu Example
 - Improve submenu management (sorting, better UI)
 - Add/improve submenu import/exports and sharing
 
+## Links
+
+[/r/BetterRedditShortcuts](https://www.reddit.com/r/BetterRedditShortcuts/)
+
 ## Contact
 
 For any questions, queries, feedback, please contact me via my reddit account [/u/printial](https://www.reddit.com/user/printial/)
