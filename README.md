@@ -8,6 +8,7 @@ Better Reddit Shortcuts or BRS for Reddit is a userscript that aims to improve s
 
 ## Current Issues
 
+- Currently only works on old reddit with RES installed
 - Submenu css needs fixing to prevent overlapping
 - Submenu management needs to be less complicated
 
@@ -15,6 +16,7 @@ Better Reddit Shortcuts or BRS for Reddit is a userscript that aims to improve s
 
 - Finish basic features - **Current status**
 - Convert to Chrome/Firefox extensions
+- Get working on new reddit, reddit without RES.
 - Add subreddit colours/icons
 - Improve submenu management
 - Add/improve submenu import/exports and sharing
