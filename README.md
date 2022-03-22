@@ -37,3 +37,7 @@ Menu Example | Edit Menu Example
 - Add subreddit colours/icons
 - Improve submenu management (sorting, better UI)
 - Add/improve submenu import/exports and sharing
+
+## Contact
+
+For any questions, queries, feedback, please contact me via my reddit account [/u/printial](https://www.reddit.com/user/printial/)
