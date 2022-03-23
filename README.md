@@ -36,6 +36,8 @@ Menu Example | Edit Menu Example
 - Get working on new reddit, reddit without RES.
 - Add subreddit colours/icons
 - Improve submenu management (sorting, better UI)
+- Support multi-reddits
+- Allow shortcuts to users/multi-reddits
 - Add/improve submenu import/exports and sharing
 
 ## Links

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BetterRedditShortcuts
 // @namespace    http://tampermonkey.net/
-// @version      0.11
+// @version      0.12
 // @description  try to take over the world!
 // @author       printial
 // @match        https://*.reddit.com/*
@@ -14,16 +14,16 @@ const bookmarks = 'bookmarks';
 let menus = [];
 
 const css =
-`   #bookmarker-bar {display:block;height:20px;font-size:15px;width:100%;border:1px solid #000; position: fixed; top: 20px;z-index: 1000; background: #FFF}
-    .bookmarker-hover-panel {position:fixed;border:1px solid #000;padding: 5px;font-size: 15px;background:#FFF;z-index:1000;min-width: 100px}
+`   #bookmarker-bar {display:block;height:20px;font-size:15px;width:100%;border:1px solid #000; position: fixed; top: 20px;z-index: 1000; background: #FFF; padding-left: 5px}
+    .bookmarker-hover-panel {position:fixed;border:1px solid #000;padding: 5px;font-size: 15px;background:#FFF;z-index:1000;min-width: 110px}
     .edit-menu{border-bottom: 1px solid #ccc; text-align: right; font-size: 10px}
     li.submenu{height: 20px; }
     li.submenu a:not([href]) { color: #000; }
     .submenu-item { border-bottom: 1px solid #ccc; vertical-align: top}
-    .bookmarker-hover-panel .submenu-child { display: none;left: 95px; position: relative; background: #fff; border: 1px solid #000; top: -20px; padding: 5px}
+    .bookmarker-hover-panel .submenu-child { display: none;left: 110px; position: relative; background: #fff; border: 1px solid #000; top: -20px; padding: 5px}
     .bookmarker-hover-panel .bookmarker-subreddit { width: 100%; display: block; }
     .bookmarker-hover-panel .bookmarker-subreddit:hover { background: #ccc }
-    #bookmarker-settings { width: 50px; border: 1px solid #000; padding: 3px}
+    #bookmarker-settings { float: right; font-weight: bold; padding-right: 10px; }
     #bookmarker-settings-panel {display:none;position:absolute;margin:auto;top:100px;border: 1px solid #000;left:0;right:0; padding: 10px; width: 60%;min-height:50%;background:#FFFFFF;z-index:10000 }
     #bookmarker-settings-panel .close-icon { font-size: 14px; float: right; color: red}
     #bookmarker-bar .bookmarks { display: inline; }
@@ -42,12 +42,14 @@ const css =
     .submenu-item { padding: 5px;}
     .submenu-item .form-group { display: flex; }
     .submenu-item .col { width: 33%; }
-    .submenu-item .col:nth-child(1) { width: 30%; padding: 5px; }
+    .submenu-item .col:nth-child(1) { width: 40%; padding: 5px; }
     .submenu-item .col:nth-child(1) .form-row { display: flex; }
     .submenu-item .col:nth-child(1) label { width: 40%; }
     .submenu-item .col:nth-child(1) input { width: 60%; }
-    .submenu-item .col:nth-child(2) { width: 50%; overflow-y: auto; height: 150px; }
-    .submenu-item .col-nth-child(3) { width: 20%; }
+    .submenu-item .col:nth-child(2) { width: 60%; overflow-y: auto; height: 150px; }
+    .submenu-item .col:nth-child(2) .form-group { flex-wrap: wrap; }
+    .bookmarker-hover-panel .submenu .submenu-child { display: none; }
+    .bookmarker-hover-panel .submenu:hover .submenu-child { display: block; }
 `;
 document.body.insertAdjacentHTML('beforeend',"<style>"+css+"</style>");
 
@@ -107,8 +109,8 @@ let menuEditFormTemplate = `
 `;
 let menuEditFormItemsTemplate =
 `
-    <h4>Menu-item</h4>
     <div class='submenu-item'>
+        <h4>Menu-item</h4>
         <div class="form-group">
             <div class="col">
                 <div class="form-row">
@@ -119,24 +121,13 @@ let menuEditFormItemsTemplate =
                     <label>Display name</label>
                     <input type='text' name='submenu-name' value='{$submenuName}' required>
                 </div>
+                <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\".submenu-item\").remove()})(arguments[0]);return false;'>Delete menu-item</a>
             </div>
             <div class="col">
-                <h4>Submenus</h4>
-                <table class='child-menu-items'>
-                    <thead>
-                        <tr>
-                            <th>Subreddit</th>
-                            <th>Display name</th>
-                            <th></th>
-                        </tr>
-                    <tbody>
-                        {$submenuChildItems}
-                    </tbody>
-                </table>
-            </div>
-            <div class="col manage">
-                <a href='#' class='child-menu-add' tabindex="-1">Add submenu</a><br/>
-                <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>Delete menu-item</a>
+                <h4>Submenus - <a href='#' class='child-menu-add' tabindex="-1">Add new</a></h4>
+                <div class="form-group child-menu-items">
+                    {$submenuChildItems}
+                </div>
             </div>
         </div>
     </div>
@@ -144,23 +135,11 @@ let menuEditFormItemsTemplate =
 
 let menuEditFormSubmenuItemTemplate =
 `
-    <tr>
-        <td>
-            <input type='text' name='submenu-subreddit' value='{$childmenuSubreddit}' required>
-        </td>
-        <td>
-            <input type='text' name='submenu-name' value='{$childmenuName}' required>
-        </td>
-        <td>
-            <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>Delete</a>
-        </td>
-    </tr>
-`;
-
-let bookmarkerSettingsBtnTemplate =
-`
-    <span class='separator'>|</span>
-    <a href='#' id='bookmarker-settings'>S</a>
+    <div class="form-row">
+        <input type='text' name='submenu-subreddit' value='{$childmenuSubreddit}' required>
+        <input type='text' name='submenu-name' value='{$childmenuName}' required>
+        <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\".form-row\").remove()})(arguments[0]);return false;'>Delete</a>
+    </div>
 `;
 
 let settingsWindowTemplate =
@@ -173,9 +152,10 @@ let settingsWindowTemplate =
 let bookmarkBarTemplate =
 `
     <div id='bookmarker-bar'>
-        <a href='#' id='bookmarker-add-current'>Add</a>
+        <a href='#' id='bookmarker-add-current'>Add current</a>
         <span class='separator'>|</span>
         <div class='bookmarks'></div>
+        <a href='#' id='bookmarker-settings'>Settings</a>
     </div>
 `;
 
@@ -302,21 +282,6 @@ class Menu {
         panel.querySelector('.bookmarker-menu-delete').addEventListener('click',function(){
             promptConfirm("Are you sure?",function(){menus[menu.getAttribute('data-id')].delete()});
         });
-        let submenus = panel.querySelectorAll('.submenu');
-        for(x = 0; x < submenus.length; x++) {
-            submenus[x].addEventListener('mouseover',function(e){
-                let child = e.target.parentNode.querySelector('.submenu-child');
-                if (child)
-                    child.style.display = 'block';
-            });
-            submenus[x].addEventListener('mouseleave',function(e){
-                let child = e.target.querySelector('.submenu-child');
-                console.log(e.target);
-                if (child)
-                    child.style.display = 'none';
-                console.log('left');
-            });
-        }
     }
 
     hoverSubmenu() {
@@ -363,7 +328,7 @@ class Menu {
                 'subreddit':submenus[x].querySelector('[name=submenu-subreddit]').value,
                 'submenus':[]
             };
-            let childMenuItems = submenus[x].querySelectorAll('.child-menu-items tbody tr');
+            let childMenuItems = submenus[x].querySelectorAll('.child-menu-items .form-row');
             console.log(childMenuItems);
             for(var y = 0; y < childMenuItems.length; y++) {
                 submenu.submenus.push({
@@ -420,14 +385,14 @@ function downloadJSON(content, fileName = 'menu.json', contentType = 'text/plain
 
 // delete when other funcs moved
 function addSubMenu(target, value = '') {
-    let table = target.closest('.form-group').querySelector('table.child-menu-items');
-    table.querySelector('tbody').insertAdjacentHTML('beforeend',
+    let items = target.closest('.form-group').querySelector('.child-menu-items');
+    items.insertAdjacentHTML('beforeend',
         parseTemplate(menuEditFormSubmenuItemTemplate,{
             'childmenuName': value,
             'childmenuSubreddit': value
         })
     );
-    console.log(table);
+    console.log(items);
 }
 
 function toggleSettingsPanel(mode = 'main', innerContent) {
@@ -472,7 +437,7 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
         for (x = 0; x < subredditInputs.length; x++) {
             subredditInputs[x].addEventListener('blur',function(e){
                 let from = e.target;
-                let to = e.target.parentNode.closest('.form-group').querySelector('[name=submenu-name]');
+                let to = e.target.parentNode.closest('.col').querySelector('[name=submenu-name]');
                 console.log(from);
                 console.log(to);
                 copyEmptyInput(from,to);
@@ -593,19 +558,13 @@ function clearBookmarkerHovers() {
         if (!loaded) {
             loaded = true;
             console.log('window loaded');
-            // Preferences section on old reddit
-            let pref = document.querySelector('#header #header-bottom-right .flat-list li');
             let content = document.body;
 
-            // Add menu next to preferences and settings window
-            let btn = bookmarkerSettingsBtnTemplate;
-            pref.insertAdjacentHTML('afterend', btn);
+            // Add settings window
             let settingsWindow = settingsWindowTemplate;
             content.insertAdjacentHTML('beforeend',settingsWindow);
 
-            // Register settings eventListeners
-            document.getElementById('bookmarker-settings').addEventListener('click',function(){toggleSettingsPanel('main')
-            });
+
 
             // Add bookmark bar
             let bookmarkBar = bookmarkBarTemplate;
@@ -616,6 +575,9 @@ function clearBookmarkerHovers() {
                     menu.save();
                 });
 
+            // Register settings eventListeners
+            document.getElementById('bookmarker-settings').addEventListener('click',function(){toggleSettingsPanel('main')
+            });
             //clearAllBookmarks();
             redrawMenus();
 
