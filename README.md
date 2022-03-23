@@ -25,7 +25,7 @@ Menu Example | Edit Menu Example
 
 ## Current Issues
 
-- Currently only works on old reddit with RES installed
+- Currently only works on old reddit 
 - Submenu css needs fixing to prevent overlapping
 - Submenu management needs to be less complicated
 

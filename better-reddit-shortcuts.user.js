@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BetterRedditShortcuts
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.11
 // @description  try to take over the world!
 // @author       printial
 // @match        https://*.reddit.com/*
@@ -19,8 +19,7 @@ const css =
     .edit-menu{border-bottom: 1px solid #ccc; text-align: right; font-size: 10px}
     li.submenu{height: 20px; }
     li.submenu a:not([href]) { color: #000; }
-    tr.submenu-item { border-bottom: 1px solid #ccc; vertical-align: top}
-    tr.submenu-item td {padding: 5px; }
+    .submenu-item { border-bottom: 1px solid #ccc; vertical-align: top}
     .bookmarker-hover-panel .submenu-child { display: none;left: 95px; position: relative; background: #fff; border: 1px solid #000; top: -20px; padding: 5px}
     .bookmarker-hover-panel .bookmarker-subreddit { width: 100%; display: block; }
     .bookmarker-hover-panel .bookmarker-subreddit:hover { background: #ccc }
@@ -30,10 +29,25 @@ const css =
     #bookmarker-bar .bookmarks { display: inline; }
     #header-bottom-left { margin-top: 41px; } /* push down reddit header to make space */
     .res-navTop #header-bottom-right { top: 41px } /* push down RES header */
-    form#save-menu input:required {
-        border: 1px solid red;
+    #bookmarker-settings .content form label, .content form th {
+        padding-right: 5px;
+        font-weight: bold;
     }
-
+    #bookmarker-settings-panel .content h2, #bookmarker-settings-panel .content h3 { padding-bottom: 5px; }
+    #bookmarker-settings-panel .content h2 { font-size: 20px; }
+    #bookmarker-settings-panel .content h3 { font-size: 14px; }
+    /* form#save-menu input:required {
+        border: 1px solid red;
+    } */
+    .submenu-item { padding: 5px;}
+    .submenu-item .form-group { display: flex; }
+    .submenu-item .col { width: 33%; }
+    .submenu-item .col:nth-child(1) { width: 30%; padding: 5px; }
+    .submenu-item .col:nth-child(1) .form-row { display: flex; }
+    .submenu-item .col:nth-child(1) label { width: 40%; }
+    .submenu-item .col:nth-child(1) input { width: 60%; }
+    .submenu-item .col:nth-child(2) { width: 50%; overflow-y: auto; height: 150px; }
+    .submenu-item .col-nth-child(3) { width: 20%; }
 `;
 document.body.insertAdjacentHTML('beforeend',"<style>"+css+"</style>");
 
@@ -77,68 +91,68 @@ let menuEditFormTemplate = `
         <input type='hidden' name='data-id' value='{$menuID}' required>
         <h2>Edit menu</h2>
         <h3>Parent menu</h3>
-        <label>Display name</label><input type='text' name='menu-name' value='{$menuName}' required>
-        <label>Subreddit</label><input type='text' name='menu-subreddit' value='{$menuSubreddit}'>
+        <div class="form-group">
+            <label>Subreddit</label><input tabindex="0" type='text' name='menu-subreddit' value='{$menuSubreddit}'>
+            <label>Display name</label><input type='text' name='menu-name' value='{$menuName}' required>
+        </div>
         <hr>
-        <h3>Menu items</h3>
-        <table style='width:50%' class='submenu-items'>
-            <thead>
-                <tr>
-                    <th>Display name</th>
-                    <th>Subreddit</th>
-                    <th>Child Subreddits</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {$submenuItems}
-            </tbody>
-        </table>
-        <a class='add-submenu' href='#'>Add</a>
+        <h3>Menu-items</h3>
+        <div class="submenu-items">
+            {$submenuItems}
+        </div>
+        <a class='add-submenu' href='#' tabindex="-1">Add menu-item</a>
         <hr>
-        <button class='btn btn-success'>Save</button>
+        <button class='btn btn-success'>Save menu</button>
     </form>
 `;
 let menuEditFormItemsTemplate =
 `
-    <tr class='submenu-item'>
-        <td>
-            <input type='text' name='submenu-name' value='{$submenuName}' required>
-        </td>
-        <td>
-            <input type='text' name='submenu-subreddit' value='{$submenuSubreddit}'>
-        </td>
-        <td>
-            <table class='child-menu-items'>
-                <thead>
-                    <tr>
-                        <th>Display name</th>
-                        <th>Subreddit</th>
-                        <th></th>
-                    </tr>
-                <tbody>
-                    {$submenuChildItems}
-                </tbody>
-            </table>
-            <a href='#' class='child-menu-add'>Add</a>
-        </td>
-        <td>
-            <a href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>D</a>
-        </td>
-    </tr>
+    <h4>Menu-item</h4>
+    <div class='submenu-item'>
+        <div class="form-group">
+            <div class="col">
+                <div class="form-row">
+                    <label>Subreddit</label>
+                    <input type='text' name='submenu-subreddit' value='{$submenuSubreddit}'>
+                </div>
+                <div class="form-row">
+                    <label>Display name</label>
+                    <input type='text' name='submenu-name' value='{$submenuName}' required>
+                </div>
+            </div>
+            <div class="col">
+                <h4>Submenus</h4>
+                <table class='child-menu-items'>
+                    <thead>
+                        <tr>
+                            <th>Subreddit</th>
+                            <th>Display name</th>
+                            <th></th>
+                        </tr>
+                    <tbody>
+                        {$submenuChildItems}
+                    </tbody>
+                </table>
+            </div>
+            <div class="col manage">
+                <a href='#' class='child-menu-add' tabindex="-1">Add submenu</a><br/>
+                <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>Delete menu-item</a>
+            </div>
+        </div>
+    </div>
 `;
 
 let menuEditFormSubmenuItemTemplate =
 `
     <tr>
         <td>
-            <input type='text' name='submenu-name' value='{$childmenuName}' required>
-        </td>
-        <td>
             <input type='text' name='submenu-subreddit' value='{$childmenuSubreddit}' required>
         </td>
         <td>
-            <a href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>D</a>
+            <input type='text' name='submenu-name' value='{$childmenuName}' required>
+        </td>
+        <td>
+            <a tabindex="-1" href='#' onClick='(function(e){e.target.closest(\"tr\").remove()})(arguments[0]);return false;'>Delete</a>
         </td>
     </tr>
 `;
@@ -194,6 +208,15 @@ let settingsMenuListItemTemplate =
 `
     <input type='checkbox' value='{$id}'><label>{$name}</label>
 `;
+
+function promptConfirm(text, confirmFunc = function(){}, cancelFunc = function(){}) {
+    let confirmAct = confirm(text);
+    if (confirmAct === true) {
+        confirmFunc();
+    } else {
+        cancelFunc();
+    }
+}
 
 function generateUniqueID() {
     const timeStamp = Date.now();
@@ -276,7 +299,9 @@ class Menu {
         let panel = document.querySelector('.bookmarker-hover-panel');
         //div.insertAdjacentHTML('afterbegin',divHTML);
         panel.querySelector('.bookmarker-menu-edit').addEventListener('click',function(){menus[menu.getAttribute('data-id')].edit()});
-        panel.querySelector('.bookmarker-menu-delete').addEventListener('click',function(){menus[menu.getAttribute('data-id')].delete()});
+        panel.querySelector('.bookmarker-menu-delete').addEventListener('click',function(){
+            promptConfirm("Are you sure?",function(){menus[menu.getAttribute('data-id')].delete()});
+        });
         let submenus = panel.querySelectorAll('.submenu');
         for(x = 0; x < submenus.length; x++) {
             submenus[x].addEventListener('mouseover',function(e){
@@ -395,7 +420,7 @@ function downloadJSON(content, fileName = 'menu.json', contentType = 'text/plain
 
 // delete when other funcs moved
 function addSubMenu(target, value = '') {
-    let table = target.closest('td').querySelector('table.child-menu-items');
+    let table = target.closest('.form-group').querySelector('table.child-menu-items');
     table.querySelector('tbody').insertAdjacentHTML('beforeend',
         parseTemplate(menuEditFormSubmenuItemTemplate,{
             'childmenuName': value,
@@ -447,7 +472,7 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
         for (x = 0; x < subredditInputs.length; x++) {
             subredditInputs[x].addEventListener('blur',function(e){
                 let from = e.target;
-                let to = e.target.parentNode.closest('tr').querySelector('[name=submenu-name]');
+                let to = e.target.parentNode.closest('.form-group').querySelector('[name=submenu-name]');
                 console.log(from);
                 console.log(to);
                 copyEmptyInput(from,to);
@@ -461,7 +486,7 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
                 'submenuChildItems' : ''
             });
 
-            panel.querySelector('.submenu-items tbody').insertAdjacentHTML('beforeend',m);
+            panel.querySelector('.submenu-items').insertAdjacentHTML('beforeend',m);
             let childMenuBtns = panel.querySelectorAll('.child-menu-add');
             for (x = 0; x < childMenuBtns.length; x++) {
                 childMenuBtns[x].addEventListener('click',function(e){addSubMenu(e.target)});
@@ -475,16 +500,16 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
             if (validate) {
                 menu.save();
                 redrawMenus();
-                document.getElementById('bookmarker-settings-panel').style.display='none';
+                panel.style.display='none';
             }
             console.log(panel);
         },false);
     }
     if (!mode || (mode && mode == 'main')) {
-       document.getElementById('bookmarker-settings-panel').querySelector('a#bookmarker-clear').addEventListener('click',function(){clearAllBookmarks();});
-       document.getElementById('bookmarker-settings-panel').querySelector('button#export').addEventListener('click',function(){downloadJSON(getAllMenus())});
-       document.getElementById('bookmarker-settings-panel').querySelector('button#update').addEventListener('click',function(){
-            let json = document.getElementById('bookmarker-settings-panel').querySelector('textarea#bookmarker-json');
+       panel.querySelector('a#bookmarker-clear').addEventListener('click',function(){clearAllBookmarks();});
+       panel.querySelector('button#export').addEventListener('click',function(){downloadJSON(getAllMenus())});
+       panel.querySelector('button#update').addEventListener('click',function(){
+            let json = panel.querySelector('textarea#bookmarker-json');
             if (json) {
                 json = JSON.parse(json.value);
                 setData(bookmarks,json);
