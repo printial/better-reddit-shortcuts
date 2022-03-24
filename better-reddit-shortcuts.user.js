@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         BetterRedditShortcuts
 // @namespace    http://tampermonkey.net/
-// @version      0.12
-// @description  try to take over the world!
+// @version      0.125
+// @description  Better shortcuts for reddit
 // @author       printial
 // @match        https://*.reddit.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=reddit.com
@@ -12,13 +12,17 @@
 
 const bookmarks = 'bookmarks';
 let menus = [];
+let defaultSettings = {
+    'show-subreddit-names-in-menu': {'type':'checkbox','value':false}
+};
+let settings = {};
 
 const css =
 `   #bookmarker-bar {display:block;height:20px;font-size:15px;width:100%;border:1px solid #000; position: fixed; top: 20px;z-index: 1000; background: #FFF; padding-left: 5px}
     .bookmarker-hover-panel {position:fixed;border:1px solid #000;padding: 5px;font-size: 15px;background:#FFF;z-index:1000;min-width: 110px}
     .edit-menu{border-bottom: 1px solid #ccc; text-align: right; font-size: 10px}
     li.submenu{height: 20px; }
-    li.submenu a:not([href]) { color: #000; }
+    li.submenu a:not([href]) { color: #000; cursor: default; }
     .submenu-item { border-bottom: 1px solid #ccc; vertical-align: top}
     .bookmarker-hover-panel .submenu-child { display: none;left: 110px; position: relative; background: #fff; border: 1px solid #000; top: -20px; padding: 5px}
     .bookmarker-hover-panel .bookmarker-subreddit { width: 100%; display: block; }
@@ -151,7 +155,7 @@ let settingsWindowTemplate =
 `;
 let bookmarkBarTemplate =
 `
-    <div id='bookmarker-bar'>
+    <div id='bookmarker-bar' style='top: {$top}'>
         <a href='#' id='bookmarker-add-current'>Add current</a>
         <span class='separator'>|</span>
         <div class='bookmarks'></div>
@@ -170,18 +174,27 @@ let bookmarkerSettingsDefaultTemplate =
     <ul>
         <li><a href='#' id='bookmarker-clear'>Delete all menus</a></li>
     </ul>
+    <form id="bookmarker-settings-form">
+        <div class="form-group">
+            <div class="form-row">
+                <label>Show Subreddits In Menus</label>
+                <input type='checkbox' name='show-subreddit-names-in-menu' {$show-subreddit-names-in-menu}>
+            </div>
+        </div>
+        <button class='btn btn-info'>Save</button>
+    </form>
     <textarea id='bookmarker-json' style='width:800px;height:200px'>{$menuData}</textarea>
     <div class='alert alert-warning'>Don't edit here unless you know what you're doing</div>
     <button class='btn btn-danger' id='update'>Update Menu Data</button>
     <div>
-        <button class='btn btn-info' id='export'>Export Menu/s</button>
         {$menuList}
+        <button class='btn btn-info' id='export'>Export Menu/s</button>
     </div>
 `;
 
 let settingsMenuListTemplate =
 `
-    <div style='height:100px; border: 1px solid #000'>{$settingsMenuListItems}</div>
+    <div style='border: 1px solid #000'>{$settingsMenuListItems}</div>
 `;
 
 let settingsMenuListItemTemplate =
@@ -246,10 +259,12 @@ class Menu {
         let subredditMenuItems = "";
         for(var x = 0; x < this.submenus.length; x++) {
             let subMenu = this.submenus[x];
-
+            let subMenuName = subMenu['name'];
+            if (settings.get('show-subreddit-names-in-menu') && subMenu['subreddit'].length)
+                subMenuName += " - (/r/"+subMenu['subreddit']+")";
             // Parse template for level 1 menu
             let subredditLink = parseTemplate(subredditLinkTemplate,{
-                'name':subMenu['name'],
+                'name':subMenuName,
                 'subredditURL':subMenu['subreddit']
             });
             let subredditMenuItem = parseTemplate(subredditMenuItemTemplate,{'subredditLink':subredditLink});
@@ -258,11 +273,15 @@ class Menu {
             let submenuList = "";
             if (subMenu['submenus'] && subMenu['submenus'].length) {
                 for (let y = 0; y < subMenu['submenus'].length; y++) {
+                    let childMenuName = subMenu['submenus'][y]['name'];
+                    let childMenuSubreddit = subMenu['submenus'][y]['subreddit'];
+                    if (settings.get('show-subreddit-names-in-menu') && childMenuSubreddit.length)
+                        childMenuName += " - (/r/"+childMenuSubreddit+")";
                     submenuList += parseTemplate(submenuChildItemTemplate,
                         {'subredditLink':
                             parseTemplate(subredditLinkTemplate,{
-                                'name':subMenu['submenus'][y]['name'],
-                                'subredditURL':subMenu['submenus'][y]['subreddit']
+                                'name':childMenuName,
+                                'subredditURL':childMenuSubreddit
                             })
                         }
                     );
@@ -413,12 +432,20 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
             'name': values.name
         });
     }
-    let content = parseTemplate(bookmarkerSettingsDefaultTemplate,{
+    let allSettings = settings.all();
+    let settingsReplaces = {
         'menuData':JSON.stringify(getData(bookmarks)),
         'menuList': parseTemplate(settingsMenuListTemplate,{
             'settingsMenuListItems': menuListItems
         })
-    });
+    };
+
+    for ([key, values] of Object.entries(allSettings)) {
+        settingsReplaces[key] = values ? "checked='checked'" : "";
+    }
+    console.log(settingsReplaces);
+    let content = parseTemplate(bookmarkerSettingsDefaultTemplate,settingsReplaces);
+
     if (mode) {
         switch(mode) {
             case 'main'        : break;
@@ -471,17 +498,60 @@ function toggleSettingsPanel(mode = 'main', innerContent) {
         },false);
     }
     if (!mode || (mode && mode == 'main')) {
-       panel.querySelector('a#bookmarker-clear').addEventListener('click',function(){clearAllBookmarks();});
-       panel.querySelector('button#export').addEventListener('click',function(){downloadJSON(getAllMenus())});
-       panel.querySelector('button#update').addEventListener('click',function(){
-            let json = panel.querySelector('textarea#bookmarker-json');
-            if (json) {
-                json = JSON.parse(json.value);
-                setData(bookmarks,json);
-                redrawMenus();
-                console.log(json);
-            }
+        // Main settings panel events
+        panel.querySelector('a#bookmarker-clear').addEventListener('click',
+            function(){
+                promptConfirm("This will delete all of your shortcuts. Confirm you want this.",
+                    function(){
+                        clearAllShortcuts();
+                    }
+                )
         });
+        panel.querySelector('button#export').addEventListener('click',
+            function(){
+                //let selectedItems = document.querySelector('#bookmarker-settings-panel')
+                downloadJSON(getAllMenus());
+            }
+        );
+        panel.querySelector('button#update').addEventListener('click',
+            function(){
+                promptConfirm("This will overwrite all of your current shortcuts. Confirm you want this",
+                    function(){
+                        let json = panel.querySelector('textarea#bookmarker-json');
+                        if (json) {
+                            json = JSON.parse(json.value);
+                            setData(bookmarks,json);
+                            redrawMenus();
+                        }
+                    }
+                )
+            }
+        );
+        panel.querySelector('form#bookmarker-settings-form').addEventListener('submit',
+            function(e){
+                e.preventDefault();
+                console.log(e.target);
+                let inputs = e.target.querySelectorAll('input');
+                for(x = 0; x < inputs.length; x++) {
+                    let setting = inputs[x];
+                    let settingName = setting.getAttribute('name');
+                    let settingValue = null;
+                    switch(setting.type) {
+                        case 'checkbox' :   if (setting.checked)
+                                                settingValue = true;
+                                            else
+                                                settingValue = false;
+                                            break;
+                        default         :   settingValue = setting.value;
+                                            break;
+                    }
+
+                    settings.set(settingName, settingValue);
+                    console.log(settings);
+                }
+            }
+        );
+
     }
 }
 
@@ -550,6 +620,42 @@ function clearBookmarkerHovers() {
     }
 }
 
+// 1 = old, 2 = new
+function getRedditVersion() {
+    return document.querySelector('#sr-header-area') ? 1 : 2; 
+}
+
+class Settings {
+    constructor(settingsIn){
+        this.settings = settingsIn;
+    }
+
+    load(){
+        let data = getData('settings');
+        //data = false;
+        if (data)
+            this.settings = data;
+    }
+
+    all() {
+        return this.settings;
+    }
+
+    save() {
+        setData('settings',this.settings);
+    }
+
+    set(setting, value) {
+        this.settings[setting] = value;
+        this.save();
+        console.log(this.settings);
+    }
+
+    get(setting) {
+        return this.settings[setting];
+    }
+}
+
 (function() {
     'use strict';
     let loaded = false;
@@ -564,11 +670,23 @@ function clearBookmarkerHovers() {
             let settingsWindow = settingsWindowTemplate;
             content.insertAdjacentHTML('beforeend',settingsWindow);
 
-
+            settings = new Settings(defaultSettings);
+            settings.load();
 
             // Add bookmark bar
-            let bookmarkBar = bookmarkBarTemplate;
-            content.querySelector('#sr-header-area').insertAdjacentHTML('afterend',bookmarkBar);
+            let header;
+            let top;
+            switch(getRedditVersion()) {
+                case 1 :  header = content.querySelector('#sr-header-area');
+                            top = "20px";
+                            break;
+                case 2 : header = content.querySelector('header');
+                            top = "50px";
+                            break;
+                default: break;
+            }
+            let bookmarkBar = parseTemplate(bookmarkBarTemplate,{'top':top});
+            header.insertAdjacentHTML('afterend',bookmarkBar);
             document.querySelector('#bookmarker-bar #bookmarker-add-current').addEventListener('click',function(){
                     var subreddit = getCurrentSubreddit();
                     let menu = new Menu(null, subreddit, subreddit, []);
@@ -576,7 +694,8 @@ function clearBookmarkerHovers() {
                 });
 
             // Register settings eventListeners
-            document.getElementById('bookmarker-settings').addEventListener('click',function(){toggleSettingsPanel('main')
+            document.getElementById('bookmarker-settings').addEventListener('click',function(){
+                toggleSettingsPanel('main')
             });
             //clearAllBookmarks();
             redrawMenus();

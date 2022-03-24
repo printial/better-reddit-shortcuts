@@ -15,9 +15,8 @@ Menu Example | Edit Menu Example
   - [/r/PARS](https://www.reddit.com/r/PARS) is the subreddit for Dunfermline Athletic F.C.
   - [/r/pne](https://www.reddit.com/r/pne) is the subreddit for Preston North End F.C.
   - [/r/superhoops](https://www.reddit.com/r/superhoops) is the subreddit for Queens Park Rangers F.C.
-- Low system usage compared to RES
 - Works with both old reddit and new reddit (eventually)
-- Ability to easy share menus with others or between accounts
+- Ability to easy share menus with others or between accounts (eventually)
 
 ## Install
 
@@ -36,9 +35,10 @@ Menu Example | Edit Menu Example
 - Get working on new reddit, reddit without RES.
 - Add subreddit colours/icons
 - Improve submenu management (sorting, better UI)
-- Support multi-reddits
+- Support multi-reddits-
 - Allow shortcuts to users/multi-reddits
 - Add/improve submenu import/exports and sharing
+- Add more menu levels (we need to go deeper)
 
 ## Links
 
